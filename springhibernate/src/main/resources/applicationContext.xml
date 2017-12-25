@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:cache="http://www.springframework.org/schema/cache"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/cache 
+        http://www.springframework.org/schema/cache/spring-cache.xsd">
+
+	<context:component-scan base-package="org.project.hibernateHomework" />
+	<aop:aspectj-autoproxy />
+	<context:property-placeholder location="mysql.properties"
+		ignore-resource-not-found="true" ignore-unresolvable="true" />
+	<!-- 配置数据源 -->
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close">
+		<property name="driverClass" value="${driver}"></property>
+		<property name="jdbcUrl" value="${url}"></property>
+		<property name="user" value="${jdbc.username}"></property>
+		<property name="password" value="${jdbc.password}"></property>
+
+		<!-- 池启动时尝试获取的连接数。应该在minPoolSize和 maxPoolSize之间 -->
+		<property name="initialPoolSize" value="15"></property>
+		<!-- 在任何给定的时间，池将保持的最小连接数 -->
+		<property name="minPoolSize" value="15"></property>
+		<!-- 在任何给定时间，池将保持的最大连接数 -->
+		<property name="maxPoolSize" value="50"></property>
+		<!-- 确定c3p0在池耗尽时将尝试获取多少个连接。 -->
+		<property name="acquireIncrement" value="5"></property>
+		<!-- c3p0全局PreparedStatement缓存的大小 -->
+		<property name="maxStatements" value="200"></property>
+		<!-- 设置连接池中，空闲连接允许存在的最大时间，单位是秒 -->
+		<property name="maxIdleTime" value="60"></property>
+		<!-- 设置连接池中，间隔多长时间，检测一次空闲连接，单位是：秒 -->
+		<property name="idleConnectionTestPeriod" value="30"></property>
+		<!--定义在从数据库获取新连接失败后重复尝试的次数。Default: 30 -->
+		<property name="acquireRetryAttempts" value="30" />
+		<!-- 多长时间回收一次超时连接，单位为：毫秒 -->
+		<property name="checkoutTimeout" value="120"></property>
+		<!-- 通过查询数据库的时间，来验证连接是否有效 -->
+		<property name="preferredTestQuery" value="SELECT NOW() FROM DUAL"></property>
+	</bean>
+
+	<!-- 第二步SessionFactory -->
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+		<property name="dataSource" ref="dataSource"></property>
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">org.hibernate.dialect.MySQLDialect</prop>
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="hibernate.format_sql">true</prop>
+			</props>
+		</property>
+		<!-- 用于扫描使用jpa规范，完成orm映射的javaBean -->
+		<property name="packagesToScan">
+			<list>
+				<value>org.project.hibernateHomework.beans</value>
+			</list>
+		</property>
+		<!-- 如果要批量的读取XML文件，就使用mappingDirectoryLocations <property name="mappingDirectoryLocations"> 
+			<list> <value>org/framestudy/spring_hibernate/usermag/xmls</value> </list> 
+			</property> -->
+
+	</bean>
+	<!-- 第三步，配置事务管理器 -->
+	<bean id="txManage"
+		class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory"></property>
+	</bean>
+		<tx:advice id="txAdvice" transaction-manager="txManage">
+		<tx:attributes>
+			<tx:method name="*" read-only="true" />
+			<!-- propagation="REQUIRED" 事务的传播需要事务管理
+			 isolation="REPEATABLE_READ" 事务的隔离级别选择可重复读
+			 rollback-for="java.lang.Exception"异常的情况下回滚
+			 read-only="false" 将连接修改为可写
+			 -->
+			<tx:method name="add*" propagation="REQUIRED" isolation="REPEATABLE_READ" rollback-for="java.lang.Exception" read-only="false"/>	
+			<tx:method name="update*" propagation="REQUIRED" isolation="REPEATABLE_READ" rollback-for="java.lang.Exception" read-only="false"/>			
+			<tx:method name="delete*" propagation="REQUIRED" isolation="REPEATABLE_READ" rollback-for="java.lang.Exception" read-only="false"/>
+		</tx:attributes>
+	</tx:advice>
+		<aop:config>
+		<aop:pointcut expression="execution(* org.project.hibernateHomework.*mag.service.impl.*ServiceImpl.*(..))" id="serviceMethod"/>
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="serviceMethod"/>
+	</aop:config>
+	
+	<!-- spring和ehcache的整合 -->
+	 <cache:annotation-driven cache-manager="cacheManager"/>
+	     <bean id="cacheManager" class="org.springframework.cache.ehcache.EhCacheCacheManager" p:cache-manager-ref="ehcache">
+     	<!-- <property name="cacheManager" ref="ehcache"></property> -->
+     </bean>
+   
+     <bean id="ehcache" class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean" p:config-location="ehcache.xml">
+     	<!-- <property name="configLocation" value="classpath:ehcache.xml"></property> -->
+     </bean>
+
+
+
+
+
+
+
+
+
+
+</beans>   

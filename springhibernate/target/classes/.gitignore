@@ -1,0 +1,7 @@
+/META-INF/
+/applicationContext.xml
+/ehcache.xml
+/hibernate-configuration-3.0.dtd
+/hibernate-mapping-3.0.dtd
+/mysql.properties
+/org/
